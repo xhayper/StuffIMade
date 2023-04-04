@@ -2,12 +2,12 @@
 
 local Players = game:GetService("Players")
 
-local ToolFramework = {}
-ToolFramework.__index = ToolFramework
+local ToolHelper = {}
+ToolHelper.__index = ToolHelper
 
-function ToolFramework.new(tool: Tool)
-	local self = setmetatable({}, ToolFramework)
-	
+function ToolHelper.new(tool: Tool)
+	local self = setmetatable({}, ToolHelper)
+
 	self.Utility = {
 		GetPlayerFromInstance = function(instance: Instance): Player?
 			local player: Player?
@@ -17,11 +17,14 @@ function ToolFramework.new(tool: Tool)
 				if temp then
 					if temp:IsA("Player") then
 						player = temp
-						break
 					end
 
 					if temp:IsA("Model") then
 						player = Players:GetPlayerFromCharacter(temp)
+					end
+
+					if player then
+						break
 					end
 
 					temp = temp.Parent
@@ -29,9 +32,9 @@ function ToolFramework.new(tool: Tool)
 			until player or not temp or not temp.Parent or temp.Parent == game
 
 			return player
-		end
+		end,
 	}
-	
+
 	self.Tool = tool
 
 	self.Equipped = false
@@ -54,24 +57,30 @@ function ToolFramework.new(tool: Tool)
 	local function UpdateCharacter()
 		local NewCharacter = self.Owner and self.Owner.Character or nil
 
-		if self.Character == NewCharacter then return end
+		if self.Character == NewCharacter then
+			return
+		end
 		self.Character = NewCharacter
 
 		self._CharacterChanged:Fire(self.Character)
 	end
 
 	local function UpdateOwner()
-		local NewOwner = tool.Parent and tool.Parent.Parent and tool.Parent.Parent:IsA("Player") and tool.Parent.Parent or nil
+		local toolParent = tool.Parent
+		local newOwner = toolParent and toolParent.Parent and toolParent.Parent:IsA("Player") and toolParent.Parent
+			or nil
 
-		if not NewOwner then
-			NewOwner = Players:GetPlayerFromCharacter(tool.Parent)
+		if not newOwner and toolParent and toolParent:IsA("Model") then
+			newOwner = Players:GetPlayerFromCharacter(toolParent)
 		end
 
-		if self.Owner == NewOwner then return end	
-		self.Owner = NewOwner
+		if self.Owner == newOwner then
+			return
+		end
+		self.Owner = newOwner
 
 		for _, v in ipairs(self._PlayerConnections) do
-			v:Disconnect()	
+			v:Disconnect()
 		end
 
 		self._OwnerChanged:Fire(self.Owner)
@@ -90,19 +99,19 @@ function ToolFramework.new(tool: Tool)
 	end)
 
 	tool.AncestryChanged:Connect(UpdateOwner)
-	
+
 	tool.Activated:Connect(function()
 		self.Activated = true
 	end)
-	
+
 	tool.Deactivated:Connect(function()
 		self.Activated = false
 	end)
-	
+
 	tool.Equipped:Connect(function(mouse)
 		self.Mouse = mouse
 		self.Equipped = true
-		
+
 		UpdateOwner()
 	end)
 
@@ -110,7 +119,7 @@ function ToolFramework.new(tool: Tool)
 		self.Mouse = nil
 		self.Equipped = false
 		self.Activated = false
-		
+
 		UpdateOwner()
 	end)
 
@@ -119,14 +128,14 @@ function ToolFramework.new(tool: Tool)
 	return self
 end
 
-function ToolFramework:Destroy()
+function ToolHelper:Destroy()
 	if self.Tool then
 		self.Tool:Destroy()
 	else
 		for _, v in ipairs(self._PlayerConnections) do
-			v:Disconnect()	
+			v:Disconnect()
 		end
-		
+
 		self.Equipped = false
 		self.Mouse = nil
 
@@ -141,4 +150,4 @@ function ToolFramework:Destroy()
 	end
 end
 
-return ToolFramework
+return ToolHelper
