@@ -12,7 +12,7 @@ local function InnerDeepCopy<K, V>(orig: { [any]: any } | any, copies: { [any]: 
 		else
 			copy = {}
 			cp[orig] = copy
-			for k, v in pairs(orig) do
+			for k, v in next, orig, nil do
 				(copy :: any)[InnerDeepCopy(k, cp)] = InnerDeepCopy(v, cp)
 			end
 			setmetatable(copy :: any, InnerDeepCopy(getmetatable(orig :: any), cp))
