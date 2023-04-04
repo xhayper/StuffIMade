@@ -10,14 +10,15 @@ return function(instance: Instance): Player?
 		if temp then
 			if temp:IsA("Player") then
 				player = temp
+				break
 			end
 
 			if temp:IsA("Model") then
 				player = Players:GetPlayerFromCharacter(temp)
-			end
 
-			if player then
-				break
+				if player then
+					break
+				end
 			end
 
 			temp = temp.Parent
