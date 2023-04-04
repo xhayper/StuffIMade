@@ -1,1 +1,0 @@
-{"name":"StuffIMade","className":"Folder","filePaths":["default.project.json"],"children":[{"name":"GetPlayerFromInstance","className":"ModuleScript","filePaths":["src\\GetPlayerFromInstance.luau"]},{"name":"ToolHelper","className":"ModuleScript","filePaths":["src\\ToolHelper.luau"]}]}
