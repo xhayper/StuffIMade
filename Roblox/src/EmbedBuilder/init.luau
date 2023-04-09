@@ -15,7 +15,7 @@ local embedFieldType = t.interface({
 	value = fieldValueType,
 	inline = fieldInlineType
 })
-local embedFieldsArrayType = t.array(embedFieldType)
+local embedFieldsArrayType = t.optional(t.array(embedFieldType))
 
 local fieldLengthType = t.numberConstrained(0, 25)
 
