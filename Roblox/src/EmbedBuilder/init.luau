@@ -141,6 +141,35 @@ export type EmbedImageData = {
 
 -----------------------------------------------------------------------
 
+local function InnerDeepCopy<K, V>(orig: { [any]: any } | any, copies: { [any]: any }?): { [K]: V } | any
+	local cp: { [any]: any } = copies or {}
+
+	local copy: ({ [K]: V } | any)?
+
+	if typeof(orig) == "table" then
+		if cp[orig] then
+			copy = cp[orig]
+		else
+			copy = {}
+			cp[orig] = copy
+			for k, v in next, orig, nil do
+				(copy :: any)[InnerDeepCopy(k, cp)] = InnerDeepCopy(v, cp)
+			end
+			setmetatable(copy :: any, InnerDeepCopy(getmetatable(orig :: any), cp))
+		end
+	else
+		copy = orig
+	end
+
+	return copy
+end
+
+local function DeepCopy<K, V>(table: { [K]: V }): { [K]: V }
+	return InnerDeepCopy(table)
+end
+
+-----------------------------------------------------------------------
+
 local EmbedBuilder = {}
 EmbedBuilder.__index = EmbedBuilder
 
@@ -149,7 +178,7 @@ export type EmbedBuilder = typeof(setmetatable({} :: { data: APIEmbed }, EmbedBu
 function EmbedBuilder.new(data: APIEmbed?)
 	local self = setmetatable({} :: { data: APIEmbed }, EmbedBuilder)
 
-	self.data = { table.unpack(data or {}) }
+	self.data = DeepCopy(data or {}) :: APIEmbed
 
 	return self
 end
@@ -285,7 +314,7 @@ function EmbedBuilder.setURL(self: EmbedBuilder, url: string | nil): EmbedBuilde
 end
 
 function EmbedBuilder.toTable(self: EmbedBuilder): APIEmbed
-	return { table.unpack(self.data) }
+	return DeepCopy(self.data) :: APIEmbed
 end
 	
 return EmbedBuilder
