@@ -1,5 +1,7 @@
 --!strict
 
+-- Ported from https://github.com/discordjs/discord.js/blob/main/packages/builders/src/messages/embed/Embed.ts
+
 local t = require(script.t)
 
 -- Typing
