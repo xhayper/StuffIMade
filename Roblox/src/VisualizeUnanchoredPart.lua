@@ -88,8 +88,9 @@ for _, v in ipairs(workspace:GetDescendants()) do
 	if not v:IsA("BasePart") or v.Anchored then continue end
 	local InstanceList = GenerateOutline({
 		Adornee = v,
-		Box = true,
-		Size = v.Size
+		Size = v.Size,
+		Color = Color3.fromRGB(255, 75, 75),
+		Box = true
 	})
 	for _, v2 in ipairs(InstanceList) do
 		v2.Parent = Storage
