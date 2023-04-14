@@ -1,7 +1,9 @@
+--!strict
+
 -- Roact Mock
 local Roact = {}
 
-function Roact.createElement(a, b)
+function Roact.createElement(a: string, b: { [string]: unknown }): Instance
 	local i = Instance.new(a)
 	for k, v in pairs(b) do
 		i[k] = v
@@ -10,7 +12,7 @@ function Roact.createElement(a, b)
 end
 
 -- https://github.com/tiffany352/Roblox-Tag-Editor/blob/main/src/Util.lua
-local function GenerateOutline(props)
+local function GenerateOutline(props: { Adornee: Instance, Size: Vector3, Color3: Color3?, Box: boolean? }): { Instance }
 	local OutlineVertices = {
 		{ 1, 1, -1 },
 		{ -1, 1, -1 },
