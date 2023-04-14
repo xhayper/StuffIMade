@@ -79,18 +79,19 @@ local function GenerateOutline(props)
 	return Instances
 end
 
+local Storage = workspace.Terrain:FindFirstChild("HighlightList") or Instance.new("Folder")
+Storage.Name = "HighlightList"
+Storage.Parent = workspace.Terrain
+Storage:ClearAllChildren()
+
 for _, v in ipairs(workspace:GetDescendants()) do
 	if not v:IsA("BasePart") or v.Anchored then continue end
-	local iList = GenerateOutline({
+	local InstanceList = GenerateOutline({
 		Adornee = v,
 		Box = true,
 		Size = v.Size
 	})
-	local P = workspace.Terrain:FindFirstChild("HighlightList") or Instance.new("Folder")
-	P.Name = "HighlightList"
-	P.Parent = workspace.Terrain
-	P:ClearAllChildren()
-	for _, v2 in ipairs(iList) do
-		v2.Parent = P
+	for _, v2 in ipairs(InstanceList) do
+		v2.Parent = Storage
 	end
 end
