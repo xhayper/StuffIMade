@@ -146,6 +146,12 @@ function ToolAnimation:Destroy()
 	for _, conn in ipairs(self._ConnectionList) do
 		conn:Disconnect()
 	end
+	
+	self._DidLoop:Destroy()
+	self._Ended:Destroy()
+	self._KeyframeReached:Destroy()
+	self._Stopped:Destroy()
+	self._TrackChanged:Destroy()
 end
 
 ---------------------------------------------
@@ -187,7 +193,8 @@ function ToolHelper.new(tool: Tool)
 	}
 
 	self.Tool = tool
-
+	
+	self.Destroyed = false
 	self.Equipped = false
 	self.Activated = false
 	self.Mouse = nil :: Mouse?
@@ -296,6 +303,10 @@ function ToolHelper.new(tool: Tool)
 end
 
 function ToolHelper:LoadAnimation(animation: Animation | string): ToolAnimation
+	if self.Destroyed then
+		return nil :: any
+	end
+	
 	local anim: Animation
 	if typeof(animation) == "string" then
 		anim = Instance.new("Animation")
@@ -314,13 +325,18 @@ function ToolHelper:Destroy()
 	if self.Tool then
 		self.Tool:Destroy()
 	else
+		self.Destroyed = true
+		
+		for _, anim in ipairs(self.AnimationList) do
+			anim:Destroy()
+		end
+		
 		for _, v in ipairs(self._PlayerConnections) do
 			v:Disconnect()
 		end
 		
-		for _, anim in pairs(self.AnimationList) do
-			anim:Destroy()
-		end
+		self.AnimationList = {}
+		self._PlayerConnections = {}
 
 		self.Equipped = false
 		self.Mouse = nil
@@ -333,6 +349,7 @@ function ToolHelper:Destroy()
 		self._Deleted:Destroy()
 		self._OwnerChanged:Destroy()
 		self._CharacterChanged:Destroy()
+		self._DroppedChanged:Destroy()
 	end
 end
 
