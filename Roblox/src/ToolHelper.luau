@@ -7,7 +7,7 @@ local Players = game:GetService("Players")
 local ToolAnimation = {}
 ToolAnimation.__index = ToolAnimation
 
-type ToolAnimation = typeof(ToolAnimation.new((nil :: any) :: ToolHelper, (nil :: any) :: Animation))
+export type ToolAnimation = typeof(ToolAnimation.new((nil :: any) :: ToolHelper, (nil :: any) :: Animation))
 
 function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 	local self = setmetatable({}, ToolAnimation)
