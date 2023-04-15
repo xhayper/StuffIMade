@@ -194,17 +194,30 @@ function ToolHelper.new(tool: Tool)
 
 	self.Owner = nil :: Player?
 	self.Character = nil :: Model?
+	self.Dropped = false
 	self.AnimationList = {} :: { ToolAnimation }
 
 	self._Deleted = Instance.new("BindableEvent")
 	self._OwnerChanged = Instance.new("BindableEvent")
 	self._CharacterChanged = Instance.new("BindableEvent")
+	self._DroppedChanged = Instance.new("BindableEvent")
 
 	self.Deleted = self._Deleted.Event
+	self.DroppedChanged = self._DroppedChanged.Event
 	self.OwnerChanged = self._OwnerChanged.Event
 	self.CharacterChanged = self._CharacterChanged.Event
 
 	self._PlayerConnections = {} :: { RBXScriptConnection }
+	
+	local function UpdateDropped()
+		if self.Character == nil and self.Tool:IsDescendantOf(workspace) then 
+			self.Dropped = true
+		else
+			self.Dropped = false
+		end
+		
+		self._DroppedChanged:Fire()
+	end
 
 	local function UpdateCharacter()
 		local NewCharacter = self.Owner and self.Owner.Character or nil
@@ -215,6 +228,8 @@ function ToolHelper.new(tool: Tool)
 		self.Character = NewCharacter
 
 		self._CharacterChanged:Fire(self.Character)
+		
+		UpdateDropped()
 	end
 
 	local function UpdateOwner()
@@ -250,7 +265,7 @@ function ToolHelper.new(tool: Tool)
 		self:Destroy()
 	end)
 
-	tool.AncestryChanged:Connect(UpdateOwner)
+	tool:GetPropertyChangedSignal("Parent"):Connect(UpdateOwner)
 
 	tool.Activated:Connect(function()
 		self.Activated = true
