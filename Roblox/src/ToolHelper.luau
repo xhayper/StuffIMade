@@ -7,7 +7,7 @@ local Players = game:GetService("Players")
 local ToolAnimation = {}
 ToolAnimation.__index = ToolAnimation
 
-export type ToolAnimation = typeof(ToolAnimation.new(nil :: any, nil :: any))
+type ToolAnimation = typeof(ToolAnimation.new((nil :: any) :: ToolHelper, (nil :: any) :: Animation))
 
 function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 	local self = setmetatable({}, ToolAnimation)
@@ -47,11 +47,11 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 		end
 
 		self.Loaded = false
-		
+
 		if not character then
 			return 
 		end
-		
+
 		task.wait() -- Wait 1 frame
 		local Humanoid = character:FindFirstChildOfClass("Humanoid")
 
@@ -64,7 +64,7 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 
 		if self.AnimationTrack then
 			self.Loaded = true			
-			
+
 			table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.DidLoop:Connect(function()
 				self._DidLoop:Fire()
 			end))
@@ -148,7 +148,7 @@ function ToolAnimation:Destroy()
 		conn:Disconnect()
 	end
 	self._ConnectionList = {}
-	
+
 	self._DidLoop:Destroy()
 	self._Ended:Destroy()
 	self._KeyframeReached:Destroy()
@@ -160,8 +160,6 @@ end
 
 local ToolHelper = {}
 ToolHelper.__index = ToolHelper
-
-export type ToolHelper = typeof(ToolHelper.new(nil :: any))
 
 function ToolHelper.new(tool: Tool)
 	local self = setmetatable({}, ToolHelper)
@@ -195,7 +193,7 @@ function ToolHelper.new(tool: Tool)
 	}
 
 	self.Tool = tool
-	
+
 	self.Destroyed = false
 	self.Equipped = false
 	self.Activated = false
@@ -217,17 +215,17 @@ function ToolHelper.new(tool: Tool)
 	self.CharacterChanged = self._CharacterChanged.Event
 
 	self._PlayerConnections = {} :: { RBXScriptConnection }
-	
+
 	local function UpdateDropped()
 		if self.Character == nil and self.Tool:IsDescendantOf(workspace) then 
 			self.Dropped = true
 		else
 			self.Dropped = false
 		end
-		
+
 		self._DroppedChanged:Fire()
 	end
-	
+
 	local function UpdateCharacter()
 		local NewCharacter
 		
@@ -317,7 +315,7 @@ function ToolHelper:LoadAnimation(animation: Animation | string): ToolAnimation
 	if self.Destroyed then
 		return nil :: any
 	end
-	
+
 	local anim: Animation
 	if typeof(animation) == "string" then
 		anim = Instance.new("Animation")
@@ -337,12 +335,12 @@ function ToolHelper:Destroy()
 		self.Tool:Destroy()
 	else
 		self.Destroyed = true
-		
+
 		for _, anim in ipairs(self.AnimationList) do
 			anim:Destroy()
 		end
 		self.AnimationList = {}
-		
+
 		for _, v in ipairs(self._PlayerConnections) do
 			v:Disconnect()
 		end
@@ -362,5 +360,7 @@ function ToolHelper:Destroy()
 		self._DroppedChanged:Destroy()
 	end
 end
+
+export type ToolHelper = typeof(ToolHelper.new((nil :: any) :: Tool))
 
 return ToolHelper
