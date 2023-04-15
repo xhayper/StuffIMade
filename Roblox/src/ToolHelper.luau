@@ -227,9 +227,18 @@ function ToolHelper.new(tool: Tool)
 		
 		self._DroppedChanged:Fire()
 	end
-
+	
 	local function UpdateCharacter()
-		local NewCharacter = self.Owner and self.Owner.Character or nil
+		local NewCharacter
+		
+		if self.Owner then
+			NewCharacter = self.Owner.Character
+		else
+			local toolParent = tool.Parent
+			if toolParent and toolParent.ClassName == "Model" then
+				NewCharacter = toolParent :: Model	
+			end
+		end
 
 		if self.Character == NewCharacter then
 			return
@@ -237,7 +246,7 @@ function ToolHelper.new(tool: Tool)
 		self.Character = NewCharacter
 
 		self._CharacterChanged:Fire(self.Character)
-		
+
 		UpdateDropped()
 	end
 
