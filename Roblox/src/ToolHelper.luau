@@ -47,7 +47,9 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 
 		self.Loaded = false
 		
-		if not character then return end
+		if not character then
+			return 
+		end
 		
 		task.wait() -- Wait 1 frame
 		local Humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -58,9 +60,10 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 		Animator.Parent = Humanoid
 
 		self.AnimationTrack = Animator:LoadAnimation(self.Animation)
-		self.Loaded = true
 
-		if self.AnimationTrack then			
+		if self.AnimationTrack then
+			self.Loaded = true			
+			
 			table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.DidLoop:Connect(function()
 				self._DidLoop:Fire()
 			end))
@@ -133,7 +136,7 @@ end
 function ToolAnimation:Destroy()
 	self.Loaded = false
 
-	self.Helper.AnimationList[self.Animation.AnimationId] = nil
+	table.remove(self.Helper.AnimationList, table.find(self.Helper.AnimationList, self))
 
 	if self.AnimationTrack then
 		self.AnimationTrack:Stop()
@@ -191,7 +194,7 @@ function ToolHelper.new(tool: Tool)
 
 	self.Owner = nil :: Player?
 	self.Character = nil :: Model?
-	self.AnimationList = {} :: { [string]: ToolAnimation }
+	self.AnimationList = {} :: { ToolAnimation }
 
 	self._Deleted = Instance.new("BindableEvent")
 	self._OwnerChanged = Instance.new("BindableEvent")
@@ -286,8 +289,8 @@ function ToolHelper:LoadAnimation(animation: Animation | string): ToolAnimation
 		anim = animation
 	end
 
-	local toolAnimation = self.AnimationList[anim.AnimationId] or ToolAnimation.new(self, anim)
-	self.AnimationList[anim.AnimationId] = toolAnimation
+	local toolAnimation = ToolAnimation.new(self, anim)
+	table.insert(self.AnimationList, toolAnimation)
 
 	return toolAnimation
 end
