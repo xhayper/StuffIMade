@@ -34,7 +34,12 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 	self.Stopped = self._Stopped.Event
 	self.TrackChanged = self._TrackChanged.Event
 
+	local animationLoadThread: thread?
 	local function OnCharacterUpdate(character: Model?)
+		if animationLoadThread then
+			task.cancel(animationLoadThread)
+		end
+
 		if self.AnimationTrack then
 			for _, conn in ipairs(self._AnimationTrackConnectionList) do
 				conn:Disconnect()
@@ -60,29 +65,37 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 		local Animator = Humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator")
 		Animator.Parent = Humanoid
 
-		self.AnimationTrack = Animator:LoadAnimation(self.Animation)
+		animationLoadThread = task.spawn(function()
+			repeat
+				local success = pcall(function()
+					self.AnimationTrack = Animator:LoadAnimation(self.Animation)
+				end)
+			until success
 
-		if self.AnimationTrack then
-			self.Loaded = true			
+			self.Loaded = true
 
-			table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.DidLoop:Connect(function()
-				self._DidLoop:Fire()
-			end))
+			if self.AnimationTrack then
+				table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.DidLoop:Connect(function()
+					self._DidLoop:Fire()
+				end))
 
-			table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.Ended:Connect(function()
-				self._Ended:Fire()
-			end))
+				table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.Ended:Connect(function()
+					self._Ended:Fire()
+				end))
 
-			table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.KeyframeReached:Connect(function(keyframeName)
-				self._KeyframeReached:Fire(keyframeName)
-			end))
+				table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.KeyframeReached:Connect(function(keyframeName)
+					self._KeyframeReached:Fire(keyframeName)
+				end))
 
-			table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.Stopped:Connect(function()
-				self._Stopped:Fire()
-			end))
+				table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.Stopped:Connect(function()
+					self._Stopped:Fire()
+				end))
+			end
 
 			self._TrackChanged:Fire()
-		end
+
+			animationLoadThread = nil
+		end)
 	end
 
 	table.insert(self._ConnectionList, self.Helper.CharacterChanged:Connect(OnCharacterUpdate))
