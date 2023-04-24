@@ -4,13 +4,51 @@ local Players = game:GetService("Players")
 
 ---------------------------------------------
 
+export type ToolAnimationImpl = {
+	__index: ToolAnimationImpl,
+	new: (helper: ToolHelper, animation: Animation) -> ToolAnimation,
+
+	AdjustSpeed: (self: ToolAnimation, speed: number) -> (),
+	AdjustWeight: (self: ToolAnimation, weight: number, fadeTime: number?) -> (),
+	GetMarkerReachedSignal: (self: ToolAnimation, name: string) -> RBXScriptSignal?,
+	GetTimeOfKeyframe: (self: ToolAnimation, keyframeName: string) -> number?,
+	Play: (self: ToolAnimation, fadeTime: number?, weight: number?, speed: number?) -> (),
+	Stop: (self: ToolAnimation, fadeTime: number?) -> (),
+	Destroy: (self: ToolAnimation) -> ()
+}
+
+export type ToolAnimationProto = {
+	Loaded: boolean,
+
+	AnimationTrack: AnimationTrack?,
+	Animation: Animation,
+
+	Helper: ToolHelper,
+
+	DidLoop: RBXScriptSignal,
+	Ended: RBXScriptSignal,
+	KeyframeReached: RBXScriptSignal,
+	Stopped: RBXScriptSignal,
+	TrackChanged: RBXScriptSignal,
+
+	_DidLoop: BindableEvent,
+	_Ended: BindableEvent,
+	_KeyframeReached: BindableEvent,
+	_Stopped: BindableEvent,
+	_TrackChanged: BindableEvent,
+	_ConnectionList: { RBXScriptConnection },
+	_AnimationTrackConnectionList: { RBXScriptConnection }
+}
+
+export type ToolAnimation = typeof(setmetatable({} :: ToolAnimationProto, {} :: ToolAnimationImpl))
+
+---------------------------------------------
+
 local ToolAnimation = {}
 ToolAnimation.__index = ToolAnimation
 
-export type ToolAnimation = typeof(ToolAnimation.new((nil :: any) :: ToolHelper, (nil :: any) :: Animation))
-
-function ToolAnimation.new(helper: ToolHelper, animation: Animation)
-	local self = setmetatable({}, ToolAnimation)
+function ToolAnimation.new(helper: ToolHelper, animation: Animation): ToolAnimation
+	local self = (setmetatable({}, ToolAnimation) :: any) :: ToolAnimation
 
 	self.Loaded = false
 
@@ -107,19 +145,19 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation)
 	return self
 end
 
-function ToolAnimation:AdjustSpeed(speed: number)
+function ToolAnimation.AdjustSpeed(self: ToolAnimation, speed: number)
 	if self.AnimationTrack then
 		self.AnimationTrack:AdjustSpeed(speed)
 	end
 end
 
-function ToolAnimation:AdjustWeight(weight: number, fadeTime: number?)
+function ToolAnimation.AdjustWeight(self: ToolAnimation, weight: number, fadeTime: number?)
 	if self.AnimationTrack then
 		self.AnimationTrack:AdjustWeight(weight, fadeTime)
 	end
 end
 
-function ToolAnimation:GetMarkerReachedSignal(name: string): RBXScriptSignal?
+function ToolAnimation.GetMarkerReachedSignal(self: ToolAnimation, name: string): RBXScriptSignal?
 	if self.AnimationTrack then
 		return self.AnimationTrack:GetMarkerReachedSignal(name)
 	end
@@ -127,7 +165,7 @@ function ToolAnimation:GetMarkerReachedSignal(name: string): RBXScriptSignal?
 	return nil
 end
 
-function ToolAnimation:GetTimeOfKeyframe(keyframeName: string): number?
+function ToolAnimation.GetTimeOfKeyframe(self: ToolAnimation, keyframeName: string): number?
 	if self.AnimationTrack then
 		return self.AnimationTrack:GetTimeOfKeyframe(keyframeName)
 	end
@@ -135,19 +173,19 @@ function ToolAnimation:GetTimeOfKeyframe(keyframeName: string): number?
 	return nil
 end
 
-function ToolAnimation:Play(fadeTime: number?, weight: number?, speed: number?)
+function ToolAnimation.Play(self: ToolAnimation, fadeTime: number?, weight: number?, speed: number?)
 	if self.AnimationTrack then
 		self.AnimationTrack:Play(fadeTime, weight, speed)
 	end
 end
 
-function ToolAnimation:Stop(fadeTime: number?)
+function ToolAnimation.Stop(self: ToolAnimation, fadeTime: number?)
 	if self.AnimationTrack then
 		self.AnimationTrack:Stop(fadeTime)
 	end
 end
 
-function ToolAnimation:Destroy()
+function ToolAnimation.Destroy(self: ToolAnimation)
 	self.Loaded = false
 
 	table.remove(self.Helper.AnimationList, table.find(self.Helper.AnimationList, self))
@@ -171,11 +209,51 @@ end
 
 ---------------------------------------------
 
+export type ToolHelperImpl = {
+	__index: ToolHelperImpl,
+	new: (tool: Tool) -> ToolHelper,
+	LoadAnimation: (self: ToolHelper, animation: Animation | string) -> ToolAnimation,
+	Destroy: (self: ToolHelper) -> ()
+}
+
+export type ToolHelperProto = {
+	Tool: Tool,
+	AnimationList: { ToolAnimation },
+	Utility: {
+		GetPlayerFromInstance: (instance: Instance) -> Player?
+	},
+
+	Destroyed: boolean,
+	Equipped: boolean,
+	Activated: boolean,
+	Dropped: boolean,
+
+	Mouse: Mouse?,
+	Owner: Player?,
+	Character: Model?,
+
+	Deleted: RBXScriptSignal,
+	DroppedChanged: RBXScriptSignal,
+	OwnerChanged: RBXScriptSignal,
+	CharacterChanged: RBXScriptSignal,
+
+
+	_Deleted: BindableEvent,
+	_OwnerChanged: BindableEvent,
+	_CharacterChanged: BindableEvent,
+	_DroppedChanged: BindableEvent,
+	_PlayerConnections: { RBXScriptConnection }
+}
+
+export type ToolHelper = typeof(setmetatable({} :: ToolHelperProto, {} :: ToolHelperImpl))
+
+---------------------------------------------
+
 local ToolHelper = {}
 ToolHelper.__index = ToolHelper
 
-function ToolHelper.new(tool: Tool)
-	local self = setmetatable({}, ToolHelper)
+function ToolHelper.new(tool: Tool): ToolHelper
+	local self = (setmetatable({}, ToolHelper) :: any) :: ToolHelper
 
 	self.Utility = {
 		GetPlayerFromInstance = function(instance: Instance): Player?
@@ -210,11 +288,11 @@ function ToolHelper.new(tool: Tool)
 	self.Destroyed = false
 	self.Equipped = false
 	self.Activated = false
-	self.Mouse = nil :: Mouse?
+	self.Dropped = false
 
+	self.Mouse = nil :: Mouse?
 	self.Owner = nil :: Player?
 	self.Character = nil :: Model?
-	self.Dropped = false
 	self.AnimationList = {} :: { ToolAnimation }
 
 	self._Deleted = Instance.new("BindableEvent")
@@ -241,7 +319,7 @@ function ToolHelper.new(tool: Tool)
 
 	local function UpdateCharacter()
 		local NewCharacter
-		
+
 		if self.Owner then
 			NewCharacter = self.Owner.Character
 		else
@@ -321,10 +399,10 @@ function ToolHelper.new(tool: Tool)
 
 	UpdateOwner()
 
-	return self
+	return self :: any
 end
 
-function ToolHelper:LoadAnimation(animation: Animation | string): ToolAnimation
+function ToolHelper.LoadAnimation(self: ToolHelper, animation: Animation | string): ToolAnimation
 	if self.Destroyed then
 		return nil :: any
 	end
@@ -343,7 +421,7 @@ function ToolHelper:LoadAnimation(animation: Animation | string): ToolAnimation
 	return toolAnimation
 end
 
-function ToolHelper:Destroy()
+function ToolHelper.Destroy(self: ToolHelper)
 	if self.Tool then
 		self.Tool:Destroy()
 	else
@@ -373,7 +451,5 @@ function ToolHelper:Destroy()
 		self._DroppedChanged:Destroy()
 	end
 end
-
-export type ToolHelper = typeof(ToolHelper.new((nil :: any) :: Tool))
 
 return ToolHelper
