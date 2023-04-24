@@ -14,7 +14,7 @@ export type ToolAnimationImpl = {
 	GetTimeOfKeyframe: (self: ToolAnimation, keyframeName: string) -> number?,
 	Play: (self: ToolAnimation, fadeTime: number?, weight: number?, speed: number?) -> (),
 	Stop: (self: ToolAnimation, fadeTime: number?) -> (),
-	Destroy: (self: ToolAnimation) -> ()
+	Destroy: (self: ToolAnimation) -> (),
 }
 
 export type ToolAnimationProto = {
@@ -37,7 +37,7 @@ export type ToolAnimationProto = {
 	_Stopped: BindableEvent,
 	_TrackChanged: BindableEvent,
 	_ConnectionList: { RBXScriptConnection },
-	_AnimationTrackConnectionList: { RBXScriptConnection }
+	_AnimationTrackConnectionList: { RBXScriptConnection },
 }
 
 export type ToolAnimation = typeof(setmetatable({} :: ToolAnimationProto, {} :: ToolAnimationImpl))
@@ -92,13 +92,15 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation): ToolAnimat
 		self.Loaded = false
 
 		if not character then
-			return 
+			return
 		end
 
 		task.wait() -- Wait 1 frame
 		local Humanoid = character:FindFirstChildOfClass("Humanoid")
 
-		if not Humanoid then return end
+		if not Humanoid then
+			return
+		end
 
 		local Animator = Humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator")
 		Animator.Parent = Humanoid
@@ -113,21 +115,33 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation): ToolAnimat
 			self.Loaded = true
 
 			if self.AnimationTrack then
-				table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.DidLoop:Connect(function()
-					self._DidLoop:Fire()
-				end))
+				table.insert(
+					self._AnimationTrackConnectionList,
+					self.AnimationTrack.DidLoop:Connect(function()
+						self._DidLoop:Fire()
+					end)
+				)
 
-				table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.Ended:Connect(function()
-					self._Ended:Fire()
-				end))
+				table.insert(
+					self._AnimationTrackConnectionList,
+					self.AnimationTrack.Ended:Connect(function()
+						self._Ended:Fire()
+					end)
+				)
 
-				table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.KeyframeReached:Connect(function(keyframeName)
-					self._KeyframeReached:Fire(keyframeName)
-				end))
+				table.insert(
+					self._AnimationTrackConnectionList,
+					self.AnimationTrack.KeyframeReached:Connect(function(keyframeName)
+						self._KeyframeReached:Fire(keyframeName)
+					end)
+				)
 
-				table.insert(self._AnimationTrackConnectionList, self.AnimationTrack.Stopped:Connect(function()
-					self._Stopped:Fire()
-				end))
+				table.insert(
+					self._AnimationTrackConnectionList,
+					self.AnimationTrack.Stopped:Connect(function()
+						self._Stopped:Fire()
+					end)
+				)
 			end
 
 			self._TrackChanged:Fire()
@@ -213,14 +227,14 @@ export type ToolHelperImpl = {
 	__index: ToolHelperImpl,
 	new: (tool: Tool) -> ToolHelper,
 	LoadAnimation: (self: ToolHelper, animation: Animation | string) -> ToolAnimation,
-	Destroy: (self: ToolHelper) -> ()
+	Destroy: (self: ToolHelper) -> (),
 }
 
 export type ToolHelperProto = {
 	Tool: Tool,
 	AnimationList: { ToolAnimation },
 	Utility: {
-		GetPlayerFromInstance: (instance: Instance) -> Player?
+		GetPlayerFromInstance: (instance: Instance) -> Player?,
 	},
 
 	Destroyed: boolean,
@@ -237,12 +251,11 @@ export type ToolHelperProto = {
 	OwnerChanged: RBXScriptSignal,
 	CharacterChanged: RBXScriptSignal,
 
-
 	_Deleted: BindableEvent,
 	_OwnerChanged: BindableEvent,
 	_CharacterChanged: BindableEvent,
 	_DroppedChanged: BindableEvent,
-	_PlayerConnections: { RBXScriptConnection }
+	_PlayerConnections: { RBXScriptConnection },
 }
 
 export type ToolHelper = typeof(setmetatable({} :: ToolHelperProto, {} :: ToolHelperImpl))
@@ -308,7 +321,7 @@ function ToolHelper.new(tool: Tool): ToolHelper
 	self._PlayerConnections = {} :: { RBXScriptConnection }
 
 	local function UpdateDropped()
-		if self.Character == nil and self.Tool:IsDescendantOf(workspace) then 
+		if self.Character == nil and self.Tool:IsDescendantOf(workspace) then
 			self.Dropped = true
 		else
 			self.Dropped = false
@@ -325,7 +338,7 @@ function ToolHelper.new(tool: Tool): ToolHelper
 		else
 			local toolParent = tool.Parent
 			if toolParent and toolParent.ClassName == "Model" then
-				NewCharacter = toolParent :: Model	
+				NewCharacter = toolParent :: Model
 			end
 		end
 
