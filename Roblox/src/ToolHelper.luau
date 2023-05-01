@@ -386,6 +386,11 @@ function ToolHelper.new(tool: Tool): ToolHelper
 	end)
 
 	tool:GetPropertyChangedSignal("Parent"):Connect(UpdateOwner)
+	
+	tool.Changed:Connect(function(property)
+		if property ~= "Parent" then return end
+		UpdateOwner()
+	end)
 
 	tool.Activated:Connect(function()
 		self.Activated = true
