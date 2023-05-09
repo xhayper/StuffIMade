@@ -566,11 +566,12 @@ game:GetService("Players").LocalPlayer.Chatted:Connect(function(msg)
 end)
 
 -- emote bindable hook
-script:WaitForChild("PlayEmote").OnInvoke = function(emote)
+script:WaitForChild("PlayEmote").OnInvoke = function(emote: string)
 	-- Only play emotes when idling
 	if pose ~= "Standing" then
 		return
 	end
+
 	if emoteNames[emote] ~= nil then
 		-- Default emotes
 		playAnimation(emote, EMOTE_TRANSITION_TIME, Humanoid)
