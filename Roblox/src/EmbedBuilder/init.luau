@@ -13,7 +13,7 @@ local fieldInlineType = t.optional(t.boolean)
 local embedFieldType = t.interface({
 	name = fieldNameType,
 	value = fieldValueType,
-	inline = fieldInlineType
+	inline = fieldInlineType,
 })
 local embedFieldsArrayType = t.array(embedFieldType)
 
@@ -27,7 +27,7 @@ local urlType = t.optional(t.match("^https?://"))
 local embedAuthorType = t.interface({
 	name = authorNameType,
 	iconURL = imageUrlType,
-	url = urlType
+	url = urlType,
 })
 
 local colorType = t.optional(t.union(t.numberConstrained(0, 0xffffff), t.Color3))
@@ -37,7 +37,7 @@ local footerTextType = t.optional(t.string)
 
 local embedFooterType = t.interface({
 	text = footerTextType,
-	iconURL = imageUrlType
+	iconURL = imageUrlType,
 })
 
 local timestampType = t.optional(t.union(t.number, t.DateTime))
@@ -49,46 +49,46 @@ local titleType = t.optional(fieldNameType)
 export type APIEmbedFooter = {
 	text: string,
 	icon_url: string?,
-	proxy_icon_url: string?
+	proxy_icon_url: string?,
 }
 
 export type APIEmbedImage = {
 	url: string,
 	proxy_url: string?,
 	height: number?,
-	width: number?
+	width: number?,
 }
 
 export type APIEmbedThumbnail = {
 	url: string,
 	proxy_url: string?,
 	height: number?,
-	width: number?
+	width: number?,
 }
 
 export type APIEmbedVideo = {
 	url: string?,
 	proxy_url: string?,
 	height: number?,
-	width: number?
+	width: number?,
 }
 
 export type APIEmbedProvider = {
 	name: string?,
-	url: string?
+	url: string?,
 }
 
 export type APIEmbedAuthor = {
 	name: string,
 	url: string?,
 	icon_url: string?,
-	proxy_icon_url: string?
+	proxy_icon_url: string?,
 }
 
 export type APIEmbedField = {
 	name: string,
 	value: string,
-	inline: boolean?
+	inline: boolean?,
 }
 
 export type APIEmbed = {
@@ -104,7 +104,7 @@ export type APIEmbed = {
 	video: APIEmbedVideo?,
 	provider: APIEmbedProvider?,
 	author: APIEmbedAuthor?,
-	fields: { APIEmbedField }?
+	fields: { APIEmbedField }?,
 }
 
 export type IconData = {
@@ -114,29 +114,29 @@ export type IconData = {
 
 export type EmbedAuthorData = IconData & {
 	name: string,
-	url: string?
+	url: string?,
 }
 
 export type EmbedAuthorOptions = {
 	iconURL: string?,
 	name: string,
-	url: string?
+	url: string?,
 }
 
 export type EmbedFooterData = IconData & {
-	text: string
+	text: string,
 }
 
 export type EmbedFooterOptions = {
-	iconURL: string?;
-	text: string
+	iconURL: string?,
+	text: string,
 }
 
 export type EmbedImageData = {
 	url: string,
 	proxyUrl: string?,
 	height: number?,
-	width: number?
+	width: number?,
 }
 
 -----------------------------------------------------------------------
@@ -220,7 +220,7 @@ function EmbedBuilder.setAuthor(self: EmbedBuilder, options: EmbedAuthorOptions 
 	self.data.author = {
 		name = options.name,
 		url = options.url,
-		icon_url = options.iconURL
+		icon_url = options.iconURL,
 	}
 
 	return self
@@ -233,22 +233,22 @@ function EmbedBuilder.setColor(self: EmbedBuilder, color: number | Color3 | nil)
 		local red = math.floor(color.R * 255)
 		local green = math.floor(color.G * 255)
 		local blue = math.floor(color.B * 255)
-		
+
 		self.data.color = bit32.rshift(red, 16) + bit32.rshift(green, 8) + blue
-		
+
 		return self
 	end
-	
+
 	self.data.color = color
-	
+
 	return self
 end
 
 function EmbedBuilder.setDescription(self: EmbedBuilder, description: string | nil): EmbedBuilder
 	assert(descriptionType(description))
-	
+
 	self.data.description = description
-	
+
 	return self
 end
 
@@ -256,65 +256,64 @@ function EmbedBuilder.setFooter(self: EmbedBuilder, options: EmbedFooterOptions 
 	if options == nil then
 		self.data.footer = nil
 		return self
-	end	
-	
+	end
+
 	assert(embedFooterType(options))
-	
+
 	self.data.footer = {
 		text = options.text,
-		icon_url = options.iconURL
+		icon_url = options.iconURL,
 	}
-	
+
 	return self
 end
 
 function EmbedBuilder.setImage(self: EmbedBuilder, url: string | nil): EmbedBuilder
 	assert(imageUrlType(url))
-	
+
 	self.data.image = url and { url = url } or nil
-	
+
 	return self
 end
 
 function EmbedBuilder.setThumbnail(self: EmbedBuilder, url: string | nil): EmbedBuilder
 	assert(imageUrlType(url))
-	
+
 	self.data.thumbnail = url and { url = url } or nil
-	
+
 	return self
 end
 
 function EmbedBuilder.setTimestamp(self: EmbedBuilder, timestamp: DateTime | number | nil): EmbedBuilder
 	assert(timestampType(timestamp))
-	
-	local convertedToDatetime = timestamp and ((
-		typeof(timestamp) == "number" and DateTime.fromUnixTimestamp(timestamp) or
-			typeof(timestamp) == "DateTime" and timestamp
-) :: DateTime) or nil
-	
+
+	local convertedToDatetime = timestamp
+			and ((typeof(timestamp) == "number" and DateTime.fromUnixTimestamp(timestamp) or typeof(timestamp) == "DateTime" and timestamp) :: DateTime)
+		or nil
+
 	self.data.timestamp = timestamp and convertedToDatetime and convertedToDatetime:ToIsoDate() or nil
-	
+
 	return self
 end
 
 function EmbedBuilder.setTitle(self: EmbedBuilder, title: string | nil): EmbedBuilder
 	assert(titleType(title))
-	
+
 	self.data.title = title
-	
+
 	return self
 end
 
 function EmbedBuilder.setURL(self: EmbedBuilder, url: string | nil): EmbedBuilder
 	assert(urlType(url))
-	
+
 	self.data.url = url
-	
+
 	return self
 end
 
 function EmbedBuilder.toTable(self: EmbedBuilder): APIEmbed
 	return DeepCopy(self.data) :: APIEmbed
 end
-	
+
 return EmbedBuilder

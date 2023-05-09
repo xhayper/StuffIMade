@@ -1,3 +1,5 @@
+--!strict
+
 return function(part: BasePart, increment: number?): { Vector3 }
 	local inc: number = increment or 0.5
 	local partSize = part.Size

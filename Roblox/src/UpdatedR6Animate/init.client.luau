@@ -12,9 +12,9 @@ local pose = "Standing"
 local EMOTE_TRANSITION_TIME = 0.1
 
 local currentAnim = ""
-local currentAnimInstance = nil
-local currentAnimTrack = nil
-local currentAnimKeyframeHandler = nil
+local currentAnimInstance: Animation? = nil
+local currentAnimTrack: AnimationTrack? = nil
+local currentAnimKeyframeHandler: RBXScriptConnection? = nil
 local currentAnimSpeed = 1.0
 
 local Rand = Random.new()
@@ -298,9 +298,9 @@ end
 -------------------------------------------------------------------------------------------
 
 local toolAnimName = ""
-local toolAnimTrack = nil
-local toolAnimInstance = nil
-local currentToolAnimKeyframeHandler = nil
+local toolAnimTrack: AnimationTrack? = nil
+local toolAnimInstance: Animation? = nil
+local currentToolAnimKeyframeHandler: RBXScriptConnection? = nil
 
 function toolKeyFrameReachedFunc(frameName: string)
 	if frameName == "End" then
@@ -440,10 +440,10 @@ function getTool()
 	return nil
 end
 
-function getToolAnim(tool: Tool)
+function getToolAnim(tool: Tool): StringValue?
 	for _, c in ipairs(tool:GetChildren()) do
-		if c.Name == "toolanim" and c.className == "StringValue" then
-			return c
+		if c.Name == "toolanim" and c.ClassName == "StringValue" then
+			return c :: StringValue
 		end
 	end
 	return nil
@@ -588,6 +588,6 @@ playAnimation("idle", 0.1, Humanoid)
 pose = "Standing"
 
 while Figure.Parent ~= nil do
-	local time = task.wait()
-	move(time)
+	local delta = task.wait()
+	move(delta)
 end

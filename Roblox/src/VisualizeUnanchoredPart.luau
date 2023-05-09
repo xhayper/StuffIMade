@@ -6,13 +6,15 @@ local Roact = {}
 function Roact.createElement(a: string, b: { [string]: unknown }): Instance
 	local i = Instance.new(a)
 	for k, v in pairs(b) do
-		i[k] = v
+		(i :: any)[k] = v
 	end
 	return i
 end
 
 -- https://github.com/tiffany352/Roblox-Tag-Editor/blob/main/src/Util.lua
-local function GenerateOutline(props: { Adornee: Instance, Size: Vector3, Color3: Color3?, Box: boolean? }): { Instance }
+local function GenerateOutline(
+	props: { Adornee: Instance, Size: Vector3, Color3: Color3?, Box: boolean? }
+): { Instance }
 	local OutlineVertices = {
 		{ 1, 1, -1 },
 		{ -1, 1, -1 },
@@ -87,13 +89,17 @@ Storage.Parent = workspace.Terrain
 Storage:ClearAllChildren()
 
 for _, v in ipairs(workspace:GetDescendants()) do
-	if not v:IsA("BasePart") or v.Anchored then continue end
+	if not v:IsA("BasePart") or v.Anchored then
+		continue
+	end
+
 	local InstanceList = GenerateOutline({
 		Adornee = v,
 		Size = v.Size,
 		Color3 = Color3.fromRGB(255, 75, 75),
-		Box = true
+		Box = true,
 	})
+
 	for _, v2 in ipairs(InstanceList) do
 		v2.Parent = Storage
 	end
