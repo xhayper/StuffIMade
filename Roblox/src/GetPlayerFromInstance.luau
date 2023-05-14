@@ -2,7 +2,7 @@
 
 local Players = game:GetService("Players")
 
-return function(instance: Instance): Player?
+return function(instance: Instance?): Player?
 	local temp: Instance? = instance
 
 	while temp and temp.Parent and temp.Parent ~= game do
