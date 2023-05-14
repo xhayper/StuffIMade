@@ -3,27 +3,20 @@
 local Players = game:GetService("Players")
 
 return function(instance: Instance): Player?
-	local player: Player?
 	local temp: Instance? = instance
 
-	repeat
-		if temp then
-			if temp:IsA("Player") then
-				player = temp
-				break
+	while temp and temp.Parent and temp.Parent ~= game do
+		if temp:IsA("Player") then
+			return temp
+		elseif temp:IsA("Model") then
+			local player = Players:GetPlayerFromCharacter(temp)
+			if player then
+				return player
 			end
-
-			if temp:IsA("Model") then
-				player = Players:GetPlayerFromCharacter(temp)
-
-				if player then
-					break
-				end
-			end
-
-			temp = temp.Parent
 		end
-	until player or not temp or not temp.Parent or temp.Parent == game
 
-	return player
+		temp = temp.Parent
+	end
+
+	return nil
 end
