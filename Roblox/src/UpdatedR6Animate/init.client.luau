@@ -195,7 +195,7 @@ if animator then
 	end
 end
 
-for name, fileList in pairs(animNames) do
+for name, fileList in animNames do
 	configureAnimationSet(name, fileList)
 end
 
@@ -348,7 +348,7 @@ function playToolAnimation(
 	end
 end
 
-function stopToolAnimations()
+function stopToolAnimations(): string
 	local oldAnim = toolAnimName
 
 	if currentToolAnimKeyframeHandler ~= nil then
@@ -566,10 +566,10 @@ game:GetService("Players").LocalPlayer.Chatted:Connect(function(msg)
 end)
 
 -- emote bindable hook
-script:WaitForChild("PlayEmote").OnInvoke = function(emote: string)
+script:WaitForChild("PlayEmote").OnInvoke = function(emote: string): (boolean, AnimationTrack?)
 	-- Only play emotes when idling
 	if pose ~= "Standing" then
-		return
+		return false
 	end
 
 	if emoteNames[emote] ~= nil then

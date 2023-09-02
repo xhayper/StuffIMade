@@ -5,13 +5,13 @@ local Roact = {}
 
 function Roact.createElement(a: string, b: { [string]: unknown }): Instance
 	local i = Instance.new(a)
-	for k, v in pairs(b) do
+	for k, v in b do
 		(i :: any)[k] = v
 	end
 	return i
 end
 
--- https://github.com/tiffany352/Roblox-Tag-Editor/blob/main/src/Util.lua
+-- https://github.com/tiffany352/Roblox-Tag-Editor/blob/f07eaf883491eda403d9b9383484714508c983dc/src/Util.lua
 local function GenerateOutline(
 	props: { Adornee: Instance, Size: Vector3, Color3: Color3?, Box: boolean? }
 ): { Instance }
@@ -83,7 +83,7 @@ local function GenerateOutline(
 	return Instances
 end
 
-local Storage = workspace.Terrain:FindFirstChild("HighlightList") or Instance.new("Folder")
+local Storage: Instance = workspace.Terrain:FindFirstChild("HighlightList") or Instance.new("Folder")
 Storage.Name = "HighlightList"
 Storage.Parent = workspace.Terrain
 Storage:ClearAllChildren()

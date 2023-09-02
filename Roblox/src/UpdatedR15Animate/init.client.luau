@@ -111,7 +111,7 @@ local emoteNames: { [string]: boolean } =
 
 function configureAnimationSet(name: string, fileList: { { id: string, weight: number } })
 	if animTable[name] ~= nil then
-		for _, connection in pairs(animTable[name].connections) do
+		for _, connection in animTable[name].connections do
 			connection:Disconnect()
 		end
 	end
@@ -147,7 +147,7 @@ function configureAnimationSet(name: string, fileList: { { id: string, weight: n
 		)
 
 		local idx = 0
-		for _, childPart in pairs(config:GetChildren()) do
+		for _, childPart in config:GetChildren() do
 			if childPart:IsA("Animation") then
 				local newWeight = 1
 				local weightObject = childPart:FindFirstChild("Weight")
@@ -174,7 +174,7 @@ function configureAnimationSet(name: string, fileList: { { id: string, weight: n
 				)
 				table.insert(
 					animTable[name].connections,
-					childPart.ChildRemoved:connect(function(property)
+					childPart.ChildRemoved:Connect(function(property)
 						configureAnimationSet(name, fileList)
 					end)
 				)
@@ -184,7 +184,7 @@ function configureAnimationSet(name: string, fileList: { { id: string, weight: n
 
 	-- fallback to defaults
 	if animTable[name].count <= 0 then
-		for idx, anim in pairs(fileList) do
+		for idx, anim in fileList do
 			animTable[name][idx] = {} :: any
 			animTable[name][idx].anim = Instance.new("Animation")
 			animTable[name][idx].anim.Name = name
@@ -196,7 +196,7 @@ function configureAnimationSet(name: string, fileList: { { id: string, weight: n
 	end
 
 	-- preload anims
-	for i, animType in pairs(animTable) do
+	for i, animType in animTable do
 		for idx = 1, animType.count, 1 do
 			if PreloadedAnims[animType[idx].anim.AnimationId] == nil then
 				Humanoid:LoadAnimation(animType[idx].anim)
@@ -230,7 +230,7 @@ if animator then
 	end
 end
 
-for name, fileList in pairs(animNames) do
+for name, fileList in animNames do
 	configureAnimationSet(name, fileList)
 end
 
@@ -250,7 +250,7 @@ local currentlyPlayingEmote = false
 
 -- functions
 
-function stopAllAnimations()
+function stopAllAnimations(): string
 	local oldAnim = currentAnim
 
 	-- return to idle if finishing an emote
@@ -289,7 +289,7 @@ function stopAllAnimations()
 	return oldAnim
 end
 
-function getHeightScale()
+function getHeightScale(): number
 	if Humanoid then
 		if not Humanoid.AutomaticScalingEnabled then
 			return 1
@@ -308,7 +308,7 @@ function getHeightScale()
 	return 1
 end
 
-local function rootMotionCompensation(speed: number)
+local function rootMotionCompensation(speed: number): number
 	local speedScaled = speed * 1.25
 	local heightScale = getHeightScale()
 	local runSpeed = speedScaled / heightScale
@@ -435,7 +435,7 @@ local function switchToAnim(anim: Animation, animName: string, transitionTime: n
 		if currentAnimKeyframeHandler ~= nil then
 			currentAnimKeyframeHandler:Disconnect()
 		end
-		currentAnimKeyframeHandler = currentAnimTrack.KeyframeReached:connect(keyFrameReachedFunc)
+		currentAnimKeyframeHandler = currentAnimTrack.KeyframeReached:Connect(keyFrameReachedFunc)
 
 		-- check to see if we need to blend a walk/run animation
 		if animName == "walk" then
@@ -449,7 +449,7 @@ local function switchToAnim(anim: Animation, animName: string, transitionTime: n
 			if runAnimKeyframeHandler ~= nil then
 				runAnimKeyframeHandler:Disconnect()
 			end
-			runAnimKeyframeHandler = runAnimTrack.KeyframeReached:connect(keyFrameReachedFunc)
+			runAnimKeyframeHandler = runAnimTrack.KeyframeReached:Connect(keyFrameReachedFunc)
 		end
 	end
 end
@@ -508,7 +508,7 @@ function playToolAnimation(
 		toolAnimName = animName
 		toolAnimInstance = anim
 
-		currentToolAnimKeyframeHandler = toolAnimTrack.KeyframeReached:connect(toolKeyFrameReachedFunc)
+		currentToolAnimKeyframeHandler = toolAnimTrack.KeyframeReached:Connect(toolKeyFrameReachedFunc)
 	end
 end
 
@@ -711,10 +711,10 @@ game:GetService("Players").LocalPlayer.Chatted:Connect(function(msg)
 end)
 
 -- emote bindable hook
-script:WaitForChild("PlayEmote").OnInvoke = function(emote: string | Animation)
+script:WaitForChild("PlayEmote").OnInvoke = function(emote: string | Animation): (boolean, AnimationTrack?)
 	-- Only play emotes when idling
 	if pose ~= "Standing" then
-		return
+		return false
 	end
 
 	if typeof(emote) == "string" and emoteNames[emote] ~= nil then
