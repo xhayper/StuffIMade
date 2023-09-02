@@ -24,7 +24,7 @@ local function HandleInstance(v: Instance)
 	end
 end
 
-for _, v in ipairs(game:GetDescendants()) do
+for _, v in game:GetDescendants() do
 	HandleInstance(v)
 end
 

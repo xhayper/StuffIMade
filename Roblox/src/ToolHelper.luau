@@ -79,7 +79,7 @@ function ToolAnimation.new(helper: ToolHelper, animation: Animation): ToolAnimat
 		end
 
 		if self.AnimationTrack then
-			for _, conn in ipairs(self._AnimationTrackConnectionList) do
+			for _, conn in self._AnimationTrackConnectionList do
 				conn:Disconnect()
 			end
 			self._AnimationTrackConnectionList = {}
@@ -209,7 +209,7 @@ function ToolAnimation.Destroy(self: ToolAnimation)
 		self.AnimationTrack:Destroy()
 	end
 
-	for _, conn in ipairs(self._ConnectionList) do
+	for _, conn in self._ConnectionList do
 		conn:Disconnect()
 	end
 	self._ConnectionList = {}
@@ -366,7 +366,7 @@ function ToolHelper.new(tool: Tool): ToolHelper
 		end
 		self.Owner = newOwner
 
-		for _, v in ipairs(self._PlayerConnections) do
+		for _, v in self._PlayerConnections do
 			v:Disconnect()
 		end
 
@@ -447,12 +447,12 @@ function ToolHelper.Destroy(self: ToolHelper)
 	else
 		self.Destroyed = true
 
-		for _, anim in ipairs(self.AnimationList) do
+		for _, anim in self.AnimationList do
 			anim:Destroy()
 		end
 		self.AnimationList = {}
 
-		for _, v in ipairs(self._PlayerConnections) do
+		for _, v in self._PlayerConnections do
 			v:Disconnect()
 		end
 		self._PlayerConnections = {}

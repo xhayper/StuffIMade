@@ -88,19 +88,19 @@ Storage.Name = "HighlightList"
 Storage.Parent = workspace.Terrain
 Storage:ClearAllChildren()
 
-for _, v in ipairs(workspace:GetDescendants()) do
+for _, v in workspace:GetDescendants() do
 	if not v:IsA("BasePart") or v.Anchored then
 		continue
 	end
 
 	local InstanceList = GenerateOutline({
 		Adornee = v,
-		Size = v.Size,
+		Size = (v :: BasePart).Size,
 		Color3 = Color3.fromRGB(255, 75, 75),
 		Box = true,
 	})
 
-	for _, v2 in ipairs(InstanceList) do
+	for _, v2 in InstanceList do
 		v2.Parent = Storage
 	end
 end

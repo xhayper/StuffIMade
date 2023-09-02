@@ -224,7 +224,7 @@ script.ChildRemoved:Connect(scriptChildModified)
 local animator = if Humanoid then Humanoid:FindFirstChildOfClass("Animator") else nil
 if animator then
 	local animTracks = animator:GetPlayingAnimationTracks()
-	for i, track in ipairs(animTracks) do
+	for i, track in animTracks do
 		track:Stop(0)
 		track:Destroy()
 	end
@@ -623,7 +623,7 @@ function animateTool()
 end
 
 function getToolAnim(tool: Tool): StringValue?
-	for _, c in ipairs(tool:GetChildren()) do
+	for _, c in tool:GetChildren() do
 		if c.Name == "toolanim" and c.ClassName == "StringValue" then
 			return c :: StringValue
 		end
