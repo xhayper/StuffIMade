@@ -1,4 +1,5 @@
 --!strict
+--!native
 
 -- Ported from https://github.com/discordjs/discord.js/blob/main/packages/builders/src/messages/embed/Embed.ts
 

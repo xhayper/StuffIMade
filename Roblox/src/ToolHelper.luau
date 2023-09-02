@@ -1,4 +1,5 @@
 --!strict
+--!native
 
 local Players = game:GetService("Players")
 

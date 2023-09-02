@@ -1,4 +1,5 @@
 --!strict
+--!native
 
 -- Roact Mock
 local Roact = {}
