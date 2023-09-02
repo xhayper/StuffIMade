@@ -1,5 +1,4 @@
 --!strict
---!native
 
 -- Adapted from http://lua-users.org/wiki/CopyTable
 local function InnerDeepCopy<K, V>(orig: { [any]: any } | any, copies: { [any]: any }?): { [K]: V } | any

@@ -1,5 +1,4 @@
 --!strict
---!native
 
 return function(duration: number?, functionOrThread: ((...any) -> ...any) | thread, ...: any): () -> ()
 	local thread = task.delay(duration, functionOrThread, ...)

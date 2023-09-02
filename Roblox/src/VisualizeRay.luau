@@ -1,5 +1,4 @@
 --!strict
---!native
 
 return function(origin: Vector3, direction: Vector3, raycastResult: RaycastResult?): Part
 	local rayPart = Instance.new("Part")
