@@ -69,7 +69,7 @@ function CacheStore.new(name: string, scope: string?, options: DataStoreOptions?
 				if
 					0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
 					or 0
-					>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
+						>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
 				then
 					continue
 				end
@@ -103,7 +103,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 		end
 
 		local decodedData = DecodeFromDatastore(datastoreData)
-		
+
 		if decodedData.data == self.__cachedData[key].data then
 			self.__cachedData[key].updateTime = math.min(decodedData.updateTime, self.__cachedData[key].updateTime)
 			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
@@ -120,7 +120,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			self.__cachedData[key].updateTime = decodedData.updateTime
 			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
 			self.__cachedData[key].uploadedToDatastore = true
-			
+
 			return decodedData.data
 		end
 	end
