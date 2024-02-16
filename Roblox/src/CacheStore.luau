@@ -44,7 +44,7 @@ type CacheStoreProto = {
 	Destroyed: boolean,
 }
 
-type CacheStore = typeof(setmetatable({} :: CacheStoreProto, {} :: CacheStoreImpl))
+export type CacheStore = typeof(setmetatable({} :: CacheStoreProto, {} :: CacheStoreImpl))
 
 local CacheStore = {}
 CacheStore.__index = CacheStore
@@ -69,7 +69,7 @@ function CacheStore.new(name: string, scope: string?, options: DataStoreOptions?
 				if
 					0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
 					or 0
-						>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
+					>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
 				then
 					continue
 				end
