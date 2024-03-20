@@ -12,6 +12,8 @@ type CacheStoreImpl = {
 	Set: (self: CacheStore, key: string, value: unknown) -> (),
 	Delete: (self: CacheStore, key: string) -> (),
 
+	RemoveKey: (self: CacheStore, key: string, fromStore: boolean?) -> (),
+
 	RemoveOnSync: (self: CacheStore, key: string) -> (),
 	CancelRemoveOnSync: (self: CacheStore, key: string) -> (),
 
@@ -65,6 +67,27 @@ export type CacheStore = typeof(setmetatable({} :: CacheStoreProto, {} :: CacheS
 
 local CacheStore = {}
 CacheStore.__index = CacheStore
+
+local function decodeData(data: unknown): unknown
+	if type(data) == "string" then
+		local startChar = data:sub(1, 1)
+		local endChar = data:sub(#data, #data)
+
+		if startChar == "{" and endChar == "}" then
+			return HttpService:JSONDecode(data)
+		end
+	end
+
+	return data
+end
+
+local function encodeData(data: unknown): string | unknown
+	if type(data) == "table" then
+		return HttpService:JSONEncode(data)
+	else
+		return data
+	end
+end
 
 function CacheStore.new(
 	name: string,
@@ -134,9 +157,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			return returnCachedData
 		end
 
-		local decodedData = if self.StoreType == "Ordered"
-			then datastoreData
-			else (if datastoreData then HttpService:JSONDecode(datastoreData) else nil)
+		local decodedData = decodeData(datastoreData)
 
 		if self.__cachedData[key] and decodedData == self.__cachedData[key].data then
 			self.__cachedData[key].updateTime =
@@ -168,7 +189,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 					self.__cachedData[key].uploadedToDatastore = true
 				end
 
-				return decodedData
+				return decodedData :: any
 			end
 		end
 	end
@@ -206,6 +227,17 @@ function CacheStore.Delete(self: CacheStore, key: string): ()
 		uploadedToDatastore = false,
 		removeOnSync = false,
 	}
+end
+
+-- TODO: Properly support RemoveKey
+function CacheStore.RemoveKey(self: CacheStore, key: string, fromStore: boolean?)
+	self.__cachedData[key] = nil
+
+	if fromStore then
+		pcall(function()
+			self.__store:RemoveAsync(key)
+		end)
+	end
 end
 
 function CacheStore.RemoveOnSync(self: CacheStore, key: string): ()
@@ -282,9 +314,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return
 	end
 
-	local decodedData = if self.StoreType == "Ordered"
-		then datastoreData
-		else (if datastoreData then HttpService:JSONDecode(datastoreData) else nil)
+	local decodedData = decodeData(datastoreData)
 
 	if decodedData == self.__cachedData[key].data then
 		if self.__cachedData[key].removeOnSync then
@@ -318,12 +348,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 	end
 
 	local success = pcall(function()
-		return self.__store:SetAsync(
-			key,
-			if self.StoreType == "Ordered"
-				then self.__cachedData[key].data
-				else HttpService:JSONEncode(self.__cachedData[key].data)
-		)
+		return self.__store:SetAsync(key, encodeData(self.__cachedData[key].data))
 	end)
 
 	if not success then
