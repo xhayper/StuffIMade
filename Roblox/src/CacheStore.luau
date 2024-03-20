@@ -235,26 +235,23 @@ function CacheStore.ForceSync(self: CacheStore, key: string?): ()
 	if key then
 		self:__syncToDatastore(key)
 	else
-		while task.wait(self.SyncTime) do
-			for k, v in self.__cachedData do
-				if v.uploadedToDatastore then
-					if v.removeOnSync then
-						self.__cachedData[k] = nil
-					end
-
-					continue
+		for k, v in self.__cachedData do
+			if v.uploadedToDatastore then
+				if v.removeOnSync then
+					self.__cachedData[k] = nil
 				end
 
-				if
-					0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
-					or 0
-						>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
-				then
-					continue
-				end
-
-				self:__syncToDatastore(k)
+				continue
 			end
+
+			if
+				0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
+				or 0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
+			then
+				continue
+			end
+
+			self:__syncToDatastore(k)
 		end
 	end
 end
