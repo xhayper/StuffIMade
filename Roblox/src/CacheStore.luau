@@ -14,6 +14,8 @@ type CacheStoreImpl = {
 
 	RemoveOnSync: (self: CacheStore, key: string) -> (),
 	CancelRemoveOnSync: (self: CacheStore, key: string) -> (),
+	
+	GetSortedAsync: (self: CacheStore, ascending: boolean, pagesize: number, minValue: number?, maxValue: number?) -> DataStorePages,
 
 	Destroy: (self: CacheStore) -> (),
 
@@ -21,7 +23,7 @@ type CacheStoreImpl = {
 }
 
 type CacheStoreProto = {
-	__store: DataStore,
+	__store: GlobalDataStore | OrderedDataStore,
 	-- UnixTimestamp for updateTime
 	-- cacheTime - keeps track of when cache is invalidated
 	-- updateTime - the time when the data was updated
@@ -39,24 +41,41 @@ type CacheStoreProto = {
 	-- unit second
 	CacheTimeout: number,
 	SyncTime: number,
+	StoreType: "Ordered" | "Normal",
 
 	Destroyed: boolean,
 }
+--& ({
+--	StoreType: "Ordered",
+--	__store: OrderedDataStore,
+--} | {
+--	StoreType: "Normal",
+--	__store: GlobalDataStore,
+--})
 
 export type CacheStore = typeof(setmetatable({} :: CacheStoreProto, {} :: CacheStoreImpl))
 
 local CacheStore = {}
 CacheStore.__index = CacheStore
 
-function CacheStore.new(name: string, scope: string?, options: DataStoreOptions?): CacheStore
+function CacheStore.new(
+	name: string,
+	scope: string?,
+	storeType: "Ordered" | "Normal",
+	options: DataStoreOptions?
+): CacheStore
 	local self = setmetatable({}, CacheStore) :: CacheStore
 
-	self.__store = DataStoreService:GetDataStore(name, scope, options)
+	self.__store = if storeType == "Ordered"
+		then DataStoreService:GetOrderedDataStore(name, scope)
+		else DataStoreService:GetDataStore(name, scope, options)
+
 	self.__cachedData = {}
 
 	self.Destroyed = false
 	self.CacheTimeout = 10
 	self.SyncTime = 10
+	self.StoreType = storeType
 
 	self.__syncThread = task.spawn(function()
 		while task.wait(self.SyncTime) do
@@ -105,7 +124,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			return returnCachedData
 		end
 
-		local decodedData = HttpService:JSONDecode(datastoreData)
+		local decodedData = if self.StoreType == "Ordered" then datastoreData else HttpService:JSONDecode(datastoreData)
 
 		if decodedData == self.__cachedData[key].data then
 			self.__cachedData[key].updateTime = math.min(keyInfo.UpdatedTime, self.__cachedData[key].updateTime)
@@ -143,6 +162,10 @@ end
 function CacheStore.Set(self: CacheStore, key: string, value: unknown)
 	if self.__cachedData[key].data == value then
 		return
+	end
+
+	if self.StoreType == "Ordered" and typeof(value) ~= "number" then
+		error("Ordered Store Type requires number value!")
 	end
 
 	self.__cachedData[key] = {
@@ -184,6 +207,14 @@ function CacheStore.CancelRemoveOnSync(self: CacheStore, key: string)
 	self.__cachedData[key].removeOnSync = false
 end
 
+function CacheStore.GetSortedAsync(self: CacheStore, ascending: boolean, pagesize: number, minValue: number?, maxValue: number?): DataStorePages
+	if self.StoreType ~= "Ordered" then
+		error("GetSortedAsync can't be run on Normal datastore!")
+	end
+	
+	return (self.__store :: OrderedDataStore):GetSortedAsync(ascending, pagesize, minValue, maxValue) :: DataStorePages
+end
+
 function CacheStore.__syncToDatastore(self: CacheStore, key: string)
 	if self.__cachedData[key].uploadedToDatastore then
 		return
@@ -203,7 +234,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string)
 		return
 	end
 
-	local decodedData = HttpService:JSONDecode(datastoreData)
+	local decodedData = if self.StoreType == "Ordered" then datastoreData else HttpService:JSONDecode(datastoreData)
 
 	if decodedData == self.__cachedData[key].data then
 		if self.__cachedData[key].removeOnSync then
@@ -234,7 +265,12 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string)
 	end
 
 	local success = pcall(function()
-		return self.__store:SetAsync(key, HttpService:JSONEncode(self.__cachedData[key].data))
+		return self.__store:SetAsync(
+			key,
+			if self.StoreType == "Ordered"
+				then self.__cachedData[key].data
+				else HttpService:JSONEncode(self.__cachedData[key].data)
+		)
 	end)
 
 	if not success then
