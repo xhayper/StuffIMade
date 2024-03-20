@@ -14,8 +14,14 @@ type CacheStoreImpl = {
 
 	RemoveOnSync: (self: CacheStore, key: string) -> (),
 	CancelRemoveOnSync: (self: CacheStore, key: string) -> (),
-	
-	GetSortedAsync: (self: CacheStore, ascending: boolean, pagesize: number, minValue: number?, maxValue: number?) -> DataStorePages,
+
+	GetSortedAsync: (
+		self: CacheStore,
+		ascending: boolean,
+		pagesize: number,
+		minValue: number?,
+		maxValue: number?
+	) -> DataStorePages,
 
 	Destroy: (self: CacheStore) -> (),
 
@@ -41,7 +47,7 @@ type CacheStoreProto = {
 	-- unit second
 	CacheTimeout: number,
 	SyncTime: number,
-	StoreType: "Ordered" | "Normal",
+	StoreType: "Ordered" | "Global" | "Normal",
 
 	Destroyed: boolean,
 }
@@ -61,21 +67,23 @@ CacheStore.__index = CacheStore
 function CacheStore.new(
 	name: string,
 	scope: string?,
-	storeType: "Ordered" | "Normal",
+	storeType: ("Ordered" | "Global" | "Normal")?,
 	options: DataStoreOptions?
 ): CacheStore
 	local self = setmetatable({}, CacheStore) :: CacheStore
 
 	self.__store = if storeType == "Ordered"
 		then DataStoreService:GetOrderedDataStore(name, scope)
-		else DataStoreService:GetDataStore(name, scope, options)
+		else (if storeType == "Global"
+			then DataStoreService:GetGlobalDataStore()
+			else DataStoreService:GetDataStore(name, scope, options))
 
 	self.__cachedData = {}
 
 	self.Destroyed = false
 	self.CacheTimeout = 10
 	self.SyncTime = 10
-	self.StoreType = storeType
+	self.StoreType = storeType or "Normal"
 
 	self.__syncThread = task.spawn(function()
 		while task.wait(self.SyncTime) do
@@ -91,7 +99,7 @@ function CacheStore.new(
 				if
 					0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
 					or 0
-					>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
+						>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
 				then
 					continue
 				end
@@ -207,11 +215,17 @@ function CacheStore.CancelRemoveOnSync(self: CacheStore, key: string)
 	self.__cachedData[key].removeOnSync = false
 end
 
-function CacheStore.GetSortedAsync(self: CacheStore, ascending: boolean, pagesize: number, minValue: number?, maxValue: number?): DataStorePages
+function CacheStore.GetSortedAsync(
+	self: CacheStore,
+	ascending: boolean,
+	pagesize: number,
+	minValue: number?,
+	maxValue: number?
+): DataStorePages
 	if self.StoreType ~= "Ordered" then
 		error("GetSortedAsync can't be run on Normal datastore!")
 	end
-	
+
 	return (self.__store :: OrderedDataStore):GetSortedAsync(ascending, pagesize, minValue, maxValue) :: DataStorePages
 end
 
