@@ -126,7 +126,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			return returnCachedData
 		end
 
-		local success, datastoreData, keyInfo: DataStoreKeyInfo = pcall(function()
+		local success, datastoreData, keyInfo: DataStoreKeyInfo? = pcall(function()
 			return self.__store:GetAsync(key)
 		end)
 
@@ -139,7 +139,8 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			else (if datastoreData then HttpService:JSONDecode(datastoreData) else nil)
 
 		if self.__cachedData[key] and decodedData == self.__cachedData[key].data then
-			self.__cachedData[key].updateTime = math.min(keyInfo.UpdatedTime, self.__cachedData[key].updateTime)
+			self.__cachedData[key].updateTime =
+				math.min(if keyInfo then keyInfo.UpdatedTime else math.huge, self.__cachedData[key].updateTime)
 			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 
 			if self.__cachedData[key].removeOnSync then
@@ -150,23 +151,25 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 		end
 
 		-- Data is still fresh, keep it
-		if self.__cachedData[key] and self.__cachedData[key].updateTime >= keyInfo.UpdatedTime then
-			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
-			return returnCachedData
-		elseif keyInfo then
-			if self.__cachedData[key] and self.__cachedData[key].removeOnSync then
-				self.__cachedData[key] = nil
-			else
-				self.__cachedData[key] = self.__cachedData[key] or {} :: any
-
-				-- Data is not fresh, update it
-				self.__cachedData[key].data = decodedData
-				self.__cachedData[key].updateTime = keyInfo.UpdatedTime
+		if keyInfo then
+			if self.__cachedData[key] and self.__cachedData[key].updateTime >= keyInfo.UpdatedTime then
 				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
-				self.__cachedData[key].uploadedToDatastore = true
-			end
+				return returnCachedData
+			else
+				if self.__cachedData[key] and self.__cachedData[key].removeOnSync then
+					self.__cachedData[key] = nil
+				else
+					self.__cachedData[key] = self.__cachedData[key] or {} :: any
 
-			return decodedData
+					-- Data is not fresh, update it
+					self.__cachedData[key].data = decodedData
+					self.__cachedData[key].updateTime = keyInfo.UpdatedTime
+					self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
+					self.__cachedData[key].uploadedToDatastore = true
+				end
+
+				return decodedData
+			end
 		end
 	end
 
@@ -270,7 +273,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return
 	end
 
-	local success, datastoreData, keyInfo: DataStoreKeyInfo = pcall(function()
+	local success, datastoreData, keyInfo: DataStoreKeyInfo? = pcall(function()
 		return self.__store:GetAsync(key)
 	end)
 
@@ -287,7 +290,8 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		if self.__cachedData[key].removeOnSync then
 			self.__cachedData[key] = nil
 		else
-			self.__cachedData[key].updateTime = math.min(keyInfo.UpdatedTime, self.__cachedData[key].updateTime)
+			self.__cachedData[key].updateTime =
+				math.min(if keyInfo then keyInfo.UpdatedTime else math.huge, self.__cachedData[key].updateTime)
 			self.__cachedData[key].uploadedToDatastore = true
 			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 		end
