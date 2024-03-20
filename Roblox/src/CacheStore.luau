@@ -101,7 +101,7 @@ function CacheStore.new(
 				if
 					0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
 					or 0
-						>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
+					>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
 				then
 					continue
 				end
@@ -134,9 +134,11 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			return returnCachedData
 		end
 
-		local decodedData = if self.StoreType == "Ordered" then datastoreData else HttpService:JSONDecode(datastoreData)
+		local decodedData = if self.StoreType == "Ordered"
+			then datastoreData
+			else (if datastoreData then HttpService:JSONDecode(datastoreData) else nil)
 
-		if decodedData == self.__cachedData[key].data then
+		if self.__cachedData[key] and decodedData == self.__cachedData[key].data then
 			self.__cachedData[key].updateTime = math.min(keyInfo.UpdatedTime, self.__cachedData[key].updateTime)
 			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
 
@@ -148,13 +150,15 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 		end
 
 		-- Data is still fresh, keep it
-		if self.__cachedData[key].updateTime >= keyInfo.UpdatedTime then
+		if self.__cachedData[key] and self.__cachedData[key].updateTime >= keyInfo.UpdatedTime then
 			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
 			return returnCachedData
-		else
-			if self.__cachedData[key].removeOnSync then
+		elseif keyInfo then
+			if self.__cachedData[key] and self.__cachedData[key].removeOnSync then
 				self.__cachedData[key] = nil
 			else
+				self.__cachedData[key] = self.__cachedData[key] or {} :: any
+
 				-- Data is not fresh, update it
 				self.__cachedData[key].data = decodedData
 				self.__cachedData[key].updateTime = keyInfo.UpdatedTime
@@ -180,8 +184,8 @@ function CacheStore.Set(self: CacheStore, key: string, value: unknown): ()
 
 	self.__cachedData[key] = {
 		data = value,
-		updateTime = DateTime.now().UnixTimestamp,
-		cacheTime = DateTime.now().UnixTimestamp,
+		updateTime = DateTime.now().UnixTimestampMillis,
+		cacheTime = DateTime.now().UnixTimestampMillis,
 		uploadedToDatastore = false,
 		removeOnSync = false,
 	}
@@ -194,8 +198,8 @@ function CacheStore.Delete(self: CacheStore, key: string): ()
 
 	self.__cachedData[key] = {
 		data = nil,
-		updateTime = DateTime.now().UnixTimestamp,
-		cacheTime = DateTime.now().UnixTimestamp,
+		updateTime = DateTime.now().UnixTimestampMillis,
+		cacheTime = DateTime.now().UnixTimestampMillis,
 		uploadedToDatastore = false,
 		removeOnSync = false,
 	}
@@ -275,7 +279,9 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return
 	end
 
-	local decodedData = if self.StoreType == "Ordered" then datastoreData else HttpService:JSONDecode(datastoreData)
+	local decodedData = if self.StoreType == "Ordered"
+		then datastoreData
+		else (if datastoreData then HttpService:JSONDecode(datastoreData) else nil)
 
 	if decodedData == self.__cachedData[key].data then
 		if self.__cachedData[key].removeOnSync then
@@ -288,16 +294,18 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return
 	end
 
-	if keyInfo.UpdatedTime >= self.__cachedData[key].updateTime then
-		if self.__cachedData[key].removeOnSync then
-			self.__cachedData[key] = nil
-		else
-			self.__cachedData[key].uploadedToDatastore = true
-			self.__cachedData[key].data = decodedData
-			self.__cachedData[key].updateTime = keyInfo.UpdatedTime
-			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
+	if keyInfo then
+		if keyInfo.UpdatedTime >= self.__cachedData[key].updateTime then
+			if self.__cachedData[key].removeOnSync then
+				self.__cachedData[key] = nil
+			else
+				self.__cachedData[key].uploadedToDatastore = true
+				self.__cachedData[key].data = decodedData
+				self.__cachedData[key].updateTime = keyInfo.UpdatedTime
+				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
+			end
+			return
 		end
-		return
 	end
 
 	if 0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync) then
