@@ -23,6 +23,8 @@ type CacheStoreImpl = {
 		maxValue: number?
 	) -> DataStorePages,
 
+	ForceSync: (self: CacheStore) -> (),
+
 	Destroy: (self: CacheStore) -> (),
 
 	__syncToDatastore: (self: CacheStore, key: string) -> (),
@@ -167,8 +169,8 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 	return returnCachedData
 end
 
-function CacheStore.Set(self: CacheStore, key: string, value: unknown)
-	if self.__cachedData[key].data == value then
+function CacheStore.Set(self: CacheStore, key: string, value: unknown): ()
+	if self.__cachedData[key] and self.__cachedData[key].data == value then
 		return
 	end
 
@@ -185,7 +187,7 @@ function CacheStore.Set(self: CacheStore, key: string, value: unknown)
 	}
 end
 
-function CacheStore.Delete(self: CacheStore, key: string)
+function CacheStore.Delete(self: CacheStore, key: string): ()
 	if self.__cachedData[key].data == nil then
 		return
 	end
@@ -199,7 +201,7 @@ function CacheStore.Delete(self: CacheStore, key: string)
 	}
 end
 
-function CacheStore.RemoveOnSync(self: CacheStore, key: string)
+function CacheStore.RemoveOnSync(self: CacheStore, key: string): ()
 	if not self.__cachedData[key] then
 		return
 	end
@@ -207,7 +209,7 @@ function CacheStore.RemoveOnSync(self: CacheStore, key: string)
 	self.__cachedData[key].removeOnSync = true
 end
 
-function CacheStore.CancelRemoveOnSync(self: CacheStore, key: string)
+function CacheStore.CancelRemoveOnSync(self: CacheStore, key: string): ()
 	if not self.__cachedData[key] then
 		return
 	end
@@ -229,7 +231,35 @@ function CacheStore.GetSortedAsync(
 	return (self.__store :: OrderedDataStore):GetSortedAsync(ascending, pagesize, minValue, maxValue) :: DataStorePages
 end
 
-function CacheStore.__syncToDatastore(self: CacheStore, key: string)
+function CacheStore.ForceSync(self: CacheStore, key: string?): ()
+	if key then
+		self:__syncToDatastore(key)
+	else
+		while task.wait(self.SyncTime) do
+			for k, v in self.__cachedData do
+				if v.uploadedToDatastore then
+					if v.removeOnSync then
+						self.__cachedData[k] = nil
+					end
+
+					continue
+				end
+
+				if
+					0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
+					or 0
+						>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
+				then
+					continue
+				end
+
+				self:__syncToDatastore(k)
+			end
+		end
+	end
+end
+
+function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 	if self.__cachedData[key].uploadedToDatastore then
 		return
 	end
@@ -299,7 +329,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string)
 	end
 end
 
-function CacheStore.Destroy(self: CacheStore)
+function CacheStore.Destroy(self: CacheStore): ()
 	task.cancel(self.__syncThread)
 
 	self.Destroyed = true
