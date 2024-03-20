@@ -101,7 +101,7 @@ function CacheStore.new(
 				if
 					0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
 					or 0
-					>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
+						>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
 				then
 					continue
 				end
@@ -120,7 +120,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 
 	if
 		not self.__cachedData[key]
-		or (DateTime.now().UnixTimestamp - self.__cachedData[key].cacheTime >= self.CacheTimeout)
+		or (DateTime.now().UnixTimestampMillis - self.__cachedData[key].cacheTime >= self.CacheTimeout)
 	then
 		if 0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync) then
 			return returnCachedData
@@ -140,7 +140,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 
 		if self.__cachedData[key] and decodedData == self.__cachedData[key].data then
 			self.__cachedData[key].updateTime = math.min(keyInfo.UpdatedTime, self.__cachedData[key].updateTime)
-			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
+			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 
 			if self.__cachedData[key].removeOnSync then
 				self.__cachedData[key] = nil
@@ -151,7 +151,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 
 		-- Data is still fresh, keep it
 		if self.__cachedData[key] and self.__cachedData[key].updateTime >= keyInfo.UpdatedTime then
-			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
+			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 			return returnCachedData
 		elseif keyInfo then
 			if self.__cachedData[key] and self.__cachedData[key].removeOnSync then
@@ -162,7 +162,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 				-- Data is not fresh, update it
 				self.__cachedData[key].data = decodedData
 				self.__cachedData[key].updateTime = keyInfo.UpdatedTime
-				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
+				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 				self.__cachedData[key].uploadedToDatastore = true
 			end
 
@@ -289,7 +289,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		else
 			self.__cachedData[key].updateTime = math.min(keyInfo.UpdatedTime, self.__cachedData[key].updateTime)
 			self.__cachedData[key].uploadedToDatastore = true
-			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
+			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 		end
 		return
 	end
@@ -302,7 +302,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 				self.__cachedData[key].uploadedToDatastore = true
 				self.__cachedData[key].data = decodedData
 				self.__cachedData[key].updateTime = keyInfo.UpdatedTime
-				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
+				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 			end
 			return
 		end
@@ -330,7 +330,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		self.__cachedData[key] = nil
 	else
 		self.__cachedData[key].uploadedToDatastore = true
-		self.__cachedData[key].cacheTime = DateTime.now().UnixTimestamp
+		self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 	end
 end
 
