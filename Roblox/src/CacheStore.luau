@@ -34,7 +34,7 @@ type CacheStoreImpl = {
 
 type CacheStoreProto = {
 	__store: GlobalDataStore | OrderedDataStore,
-	-- UnixTimestamp for updateTime
+	-- UnixTimestampMillis for updateTime
 	-- cacheTime - keeps track of when cache is invalidated
 	-- updateTime - the time when the data was updated
 	__cachedData: {
