@@ -223,7 +223,7 @@ function CacheStore.GetSortedAsync(
 	maxValue: number?
 ): DataStorePages
 	if self.StoreType ~= "Ordered" then
-		error("GetSortedAsync can't be run on Normal datastore!")
+		error(`GetSortedAsync can't be run on {self.StoreType} datastore!`)
 	end
 
 	return (self.__store :: OrderedDataStore):GetSortedAsync(ascending, pagesize, minValue, maxValue) :: DataStorePages
