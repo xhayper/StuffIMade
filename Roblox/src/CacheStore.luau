@@ -1,7 +1,6 @@
 --!strict
 
 local DataStoreService = game:GetService("DataStoreService")
-local HttpService = game:GetService("HttpService")
 
 type CacheStoreImpl = {
 	__index: CacheStoreImpl,
@@ -68,27 +67,6 @@ export type CacheStore = typeof(setmetatable({} :: CacheStoreProto, {} :: CacheS
 local CacheStore = {}
 CacheStore.__index = CacheStore
 
-local function decodeData(data: unknown): unknown
-	if type(data) == "string" then
-		local startChar = data:sub(1, 1)
-		local endChar = data:sub(#data, #data)
-
-		if startChar == "{" and endChar == "}" then
-			return HttpService:JSONDecode(data)
-		end
-	end
-
-	return data
-end
-
-local function encodeData(data: unknown): string | unknown
-	if type(data) == "table" then
-		return HttpService:JSONEncode(data)
-	else
-		return data
-	end
-end
-
 function CacheStore.new(
 	name: string,
 	scope: string?,
@@ -150,7 +128,7 @@ function CacheStore.new(
 			end
 
 			if shouldContinue then
-				task.wait(1)
+				task.wait(3)
 			else
 				break
 			end
@@ -185,9 +163,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			return returnCachedData
 		end
 
-		local decodedData = decodeData(datastoreData)
-
-		if self.__cachedData[key] and decodedData == self.__cachedData[key].data then
+		if self.__cachedData[key] and datastoreData == self.__cachedData[key].data then
 			self.__cachedData[key].updateTime =
 				math.min(if keyInfo then keyInfo.UpdatedTime else math.huge, self.__cachedData[key].updateTime)
 			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
@@ -211,13 +187,13 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 					self.__cachedData[key] = self.__cachedData[key] or {} :: any
 
 					-- Data is not fresh, update it
-					self.__cachedData[key].data = decodedData
+					self.__cachedData[key].data = datastoreData
 					self.__cachedData[key].updateTime = keyInfo.UpdatedTime
 					self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 					self.__cachedData[key].uploadedToDatastore = true
 				end
 
-				return decodedData :: any
+				return datastoreData :: any
 			end
 		end
 	end
@@ -324,8 +300,6 @@ function CacheStore.ForceSync(self: CacheStore, key: string?): ()
 end
 
 function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
-	local cachedData
-
 	if self.__cachedData[key] and self.__cachedData[key].uploadedToDatastore then
 		return
 	end
@@ -349,9 +323,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return
 	end
 
-	local decodedData = decodeData(datastoreData)
-
-	if decodedData == self.__cachedData[key].data then
+	if datastoreData == self.__cachedData[key].data then
 		if self.__cachedData[key].removeOnSync then
 			self.__cachedData[key] = nil
 		else
@@ -369,7 +341,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 				self.__cachedData[key] = nil
 			else
 				self.__cachedData[key].uploadedToDatastore = true
-				self.__cachedData[key].data = decodedData
+				self.__cachedData[key].data = datastoreData
 				self.__cachedData[key].updateTime = keyInfo.UpdatedTime
 				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 			end
@@ -383,7 +355,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 	end
 
 	local success = pcall(function()
-		return self.__store:SetAsync(key, encodeData(self.__cachedData[key].data))
+		return self.__store:SetAsync(key, self.__cachedData[key].data)
 	end)
 
 	-- We lose the race condition
