@@ -3,6 +3,55 @@
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 
+local function deepCopy<T>(orig: T): T
+	local orig_type = type(orig)
+	local copy
+	if orig_type == "table" then
+		copy = {}
+		for orig_key, orig_value in next, orig :: any, nil do
+			copy[deepCopy(orig_key)] = deepCopy(orig_value)
+		end
+		setmetatable(copy, deepCopy(getmetatable(orig :: any)))
+	else -- number, string, boolean, etc
+		copy = orig :: any
+	end
+	return (copy :: any) :: T
+end
+
+local function deepEq(tbl1: unknown, tbl2: unknown): boolean
+	if tbl1 == tbl2 then
+		return true
+	elseif type(tbl1) == "table" and type(tbl2) == "table" then
+		for key1, value1 in tbl1 :: any do
+			local value2 = (tbl2 :: any)[key1]
+
+			if value2 == nil then
+				-- avoid the type call for missing keys in tbl2 by directly comparing with nil
+				return false
+			elseif value1 ~= value2 then
+				if type(value1) == "table" and type(value2) == "table" then
+					if not deepEq(value1, value2) then
+						return false
+					end
+				else
+					return false
+				end
+			end
+		end
+
+		-- check for missing keys in tbl1
+		for key2, _ in tbl2 :: any do
+			if (tbl1 :: any)[key2] == nil then
+				return false
+			end
+		end
+
+		return true
+	end
+
+	return false
+end
+
 type CacheStoreImpl = {
 	__index: CacheStoreImpl,
 
@@ -141,7 +190,7 @@ end
 
 function CacheStore.Get<T>(self: CacheStore, key: string): T?
 	-- We return this if we ran out of budget to get the data... or if we can't fetch the data...
-	local returnCachedData = self.__cachedData[key] and self.__cachedData[key].data :: T or nil
+	local returnCachedData = deepCopy(self.__cachedData[key] and self.__cachedData[key].data :: T or nil)
 
 	if
 		not self.__cachedData[key]
@@ -166,7 +215,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			return returnCachedData
 		end
 
-		if self.__cachedData[key] and datastoreData == self.__cachedData[key].data then
+		if self.__cachedData[key] and deepEq(datastoreData, self.__cachedData[key].data) then
 			self.__cachedData[key].updateTime =
 				math.min(if keyInfo then keyInfo.UpdatedTime else math.huge, self.__cachedData[key].updateTime)
 			self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
@@ -179,7 +228,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 		end
 
 		-- Data is still fresh, keep it
-		if keyInfo then
+		if keyInfo then			
 			if self.__cachedData[key] and self.__cachedData[key].updateTime >= keyInfo.UpdatedTime then
 				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 				return returnCachedData
@@ -196,7 +245,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 					self.__cachedData[key].uploadedToDatastore = true
 				end
 
-				return datastoreData :: any
+				return deepCopy(datastoreData :: any)
 			end
 		end
 	end
@@ -205,7 +254,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 end
 
 function CacheStore.Set(self: CacheStore, key: string, value: unknown): ()
-	if self.__cachedData[key] and self.__cachedData[key].data == value then
+	if self.__cachedData[key] and deepEq(self.__cachedData[key].data, value) then
 		return
 	end
 
@@ -303,7 +352,9 @@ function CacheStore.ForceSync(self: CacheStore, key: string?): ()
 end
 
 function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
-	local cachedData
+	if not self.__cachedData[key] then
+		return
+	end
 
 	if self.__cachedData[key] and self.__cachedData[key].uploadedToDatastore then
 		return
@@ -318,8 +369,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return self.__store:GetAsync(key)
 	end)
 
-	-- We lose the race condition
-	if not self.__cachedData[key] then
+	if self.__cachedData[key] == nil then
 		return
 	end
 
@@ -328,7 +378,7 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return
 	end
 
-	if datastoreData == self.__cachedData[key].data then
+	if deepEq(datastoreData, self.__cachedData[key].data) then
 		if self.__cachedData[key].removeOnSync then
 			self.__cachedData[key] = nil
 		else
