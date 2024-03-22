@@ -57,7 +57,7 @@ type CacheStoreImpl = {
 
 	new: (name: string, scope: string?, options: DataStoreOptions?) -> CacheStore,
 
-	Get: <T>(self: CacheStore, key: string) -> T?,
+	Get: <T>(self: CacheStore, key: string, noCache: boolean?) -> T?,
 	Set: (self: CacheStore, key: string, value: unknown) -> (),
 	Delete: (self: CacheStore, key: string) -> (),
 
@@ -74,7 +74,7 @@ type CacheStoreImpl = {
 		maxValue: number?
 	) -> DataStorePages,
 
-	ForceSync: (self: CacheStore) -> (),
+	Sync: (self: CacheStore, key: string?) -> (),
 
 	Destroy: (self: CacheStore) -> (),
 
@@ -140,7 +140,7 @@ function CacheStore.new(
 
 	self.__syncThread = task.spawn(function()
 		while task.wait(self.SyncTime) do
-			self:ForceSync()
+			self:Sync()
 		end
 	end)
 
@@ -148,6 +148,9 @@ function CacheStore.new(
 		if self.Destroyed then
 			return
 		end
+
+		task.cancel(self.__syncThread)
+		self.__syncThread = nil :: any
 
 		repeat
 			local shouldContinue = false
@@ -168,7 +171,7 @@ function CacheStore.new(
 				self.__cachedData[k] = v
 			end
 
-			self:ForceSync()
+			self:Sync()
 
 			do
 				for _, _ in self.__cachedData do
@@ -183,12 +186,22 @@ function CacheStore.new(
 				break
 			end
 		until false
+
+		self:Destroy()
 	end)
 
 	return self
 end
 
-function CacheStore.Get<T>(self: CacheStore, key: string): T?
+function CacheStore.Get<T>(self: CacheStore, key: string, noCache: boolean?): T?
+	if noCache then
+		local _, data = pcall(function()
+			return self.__store:GetAsync(key)
+		end)
+
+		return data :: T?
+	end
+
 	-- We return this if we ran out of budget to get the data... or if we can't fetch the data...
 	local returnCachedData = deepCopy(self.__cachedData[key] and self.__cachedData[key].data :: T or nil)
 
@@ -228,7 +241,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 		end
 
 		-- Data is still fresh, keep it
-		if keyInfo then			
+		if keyInfo then
 			if self.__cachedData[key] and self.__cachedData[key].updateTime >= keyInfo.UpdatedTime then
 				self.__cachedData[key].cacheTime = DateTime.now().UnixTimestampMillis
 				return returnCachedData
@@ -245,7 +258,7 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 					self.__cachedData[key].uploadedToDatastore = true
 				end
 
-				return deepCopy(datastoreData :: any)
+				return deepCopy(datastoreData :: T?)
 			end
 		end
 	end
@@ -326,7 +339,7 @@ function CacheStore.GetSortedAsync(
 	return (self.__store :: OrderedDataStore):GetSortedAsync(ascending, pagesize, minValue, maxValue) :: DataStorePages
 end
 
-function CacheStore.ForceSync(self: CacheStore, key: string?): ()
+function CacheStore.Sync(self: CacheStore, key: string?): ()
 	if key then
 		self:__syncToDatastore(key)
 	else
