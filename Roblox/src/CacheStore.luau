@@ -96,8 +96,6 @@ function CacheStore.new(
 	end)
 
 	game:BindToClose(function()
-		print(self)
-
 		if self.Destroyed then
 			return
 		end
