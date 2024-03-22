@@ -296,7 +296,7 @@ function CacheStore.ForceSync(self: CacheStore, key: string?): ()
 end
 
 function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
-	if self.__cachedData[key].uploadedToDatastore then
+	if self.__cachedData[key] and self.__cachedData[key].uploadedToDatastore then
 		return
 	end
 
