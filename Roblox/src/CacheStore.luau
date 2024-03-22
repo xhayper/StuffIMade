@@ -1,6 +1,7 @@
 --!strict
 
 local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
 
 type CacheStoreImpl = {
 	__index: CacheStoreImpl,
@@ -95,6 +96,8 @@ function CacheStore.new(
 	end)
 
 	game:BindToClose(function()
+		print(self)
+
 		if self.Destroyed then
 			return
 		end
@@ -150,12 +153,14 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 			return returnCachedData
 		end
 
+		local dataExistBeforeGet = self.__cachedData[key] ~= nil
+
 		local success, datastoreData, keyInfo: DataStoreKeyInfo? = pcall(function()
 			return self.__store:GetAsync(key)
 		end)
 
 		-- We lose the race condition
-		if not self.__cachedData[key] then
+		if dataExistBeforeGet ~= (self.__cachedData[key] ~= nil) then
 			return
 		end
 
@@ -300,6 +305,8 @@ function CacheStore.ForceSync(self: CacheStore, key: string?): ()
 end
 
 function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
+	local cachedData
+
 	if self.__cachedData[key] and self.__cachedData[key].uploadedToDatastore then
 		return
 	end
@@ -354,12 +361,14 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return
 	end
 
+	local dataExistBeforeSet = self.__cachedData[key] ~= nil
+
 	local success = pcall(function()
 		return self.__store:SetAsync(key, self.__cachedData[key].data)
 	end)
 
 	-- We lose the race condition
-	if not self.__cachedData[key] then
+	if dataExistBeforeSet ~= (self.__cachedData[key] ~= nil) then
 		return
 	end
 
