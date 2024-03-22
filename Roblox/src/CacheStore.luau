@@ -112,26 +112,49 @@ function CacheStore.new(
 
 	self.__syncThread = task.spawn(function()
 		while task.wait(self.SyncTime) do
-			for k, v in self.__cachedData do
-				if v.uploadedToDatastore then
-					if v.removeOnSync then
-						self.__cachedData[k] = nil
-					end
-
-					continue
-				end
-
-				if
-					0 >= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync)
-					or 0
-						>= DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync)
-				then
-					continue
-				end
-
-				self:__syncToDatastore(k)
-			end
+			self:ForceSync()
 		end
+	end)
+
+	game:BindToClose(function()
+		if self.Destroyed then
+			return
+		end
+
+		repeat
+			local shouldContinue = false
+
+			do
+				for _, _ in self.__cachedData do
+					shouldContinue = true
+					break
+				end
+			end
+
+			if not shouldContinue then
+				break
+			end
+
+			for k, v in self.__cachedData do
+				v.removeOnSync = true
+				self.__cachedData[k] = v
+			end
+
+			self:ForceSync()
+
+			do
+				for _, _ in self.__cachedData do
+					shouldContinue = true
+					break
+				end
+			end
+
+			if shouldContinue then
+				task.wait(1)
+			else
+				break
+			end
+		until false
 	end)
 
 	return self
@@ -152,6 +175,11 @@ function CacheStore.Get<T>(self: CacheStore, key: string): T?
 		local success, datastoreData, keyInfo: DataStoreKeyInfo? = pcall(function()
 			return self.__store:GetAsync(key)
 		end)
+
+		-- We lose the race condition
+		if not self.__cachedData[key] then
+			return
+		end
 
 		if not success then
 			return returnCachedData
@@ -296,6 +324,8 @@ function CacheStore.ForceSync(self: CacheStore, key: string?): ()
 end
 
 function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
+	local cachedData
+
 	if self.__cachedData[key] and self.__cachedData[key].uploadedToDatastore then
 		return
 	end
@@ -309,8 +339,13 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 		return self.__store:GetAsync(key)
 	end)
 
+	-- We lose the race condition
+	if not self.__cachedData[key] then
+		return
+	end
+
 	if not success then
-		-- Can't sync, we can't check if cache over ridden yet
+		-- Can't sync, we can't check if cache overridden yet
 		return
 	end
 
@@ -350,6 +385,11 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 	local success = pcall(function()
 		return self.__store:SetAsync(key, encodeData(self.__cachedData[key].data))
 	end)
+
+	-- We lose the race condition
+	if not self.__cachedData[key] then
+		return
+	end
 
 	if not success then
 		return
