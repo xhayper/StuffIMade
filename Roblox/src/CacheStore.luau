@@ -446,7 +446,9 @@ function CacheStore.__syncToDatastore(self: CacheStore, key: string): ()
 end
 
 function CacheStore.Destroy(self: CacheStore): ()
-	task.cancel(self.__syncThread)
+	if self.__syncThread then
+		task.cancel(self.__syncThread)
+	end
 
 	self.Destroyed = true
 
